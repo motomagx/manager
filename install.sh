@@ -9,7 +9,7 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 # Check if SDDM is installed:
-SDDM=$(apt list --installed | grep sddm | wc -l)
+GDM=$(apt list --installed | grep gdm | wc -l)
 
 clear
 
@@ -137,8 +137,12 @@ ask_yes_no "Do you want to install Thunar file manager?" thunar
 printf "\n"
 ask_yes_no "Installing in Asus ROG Laptops?" rog
 printf "\n"
-ask_yes_no "Do you want to install and configure SDDM?" sddm
-printf "\n"
+
+if [ $GDM == 0 ]; then # Ignore SDDM cfg if GDM is installed
+    ask_yes_no "Do you want to install and configure SDDM?" sddm
+    printf "\n"
+fi
+
 ask_yes_no "Do you want to install xdg-desktop-portal-hyprland?" xdph
 printf "\n"
 ask_yes_no "Do you want to install zsh and oh-my-zsh?" zsh
@@ -235,13 +239,13 @@ fi
 
 clear
 
-printf "\n${OK} Yey! Installation Completed.\n"
-printf "\n"
+printf "\n${OK} Yey! Installation Completed.\n\n"
 printf "\n${NOTE} NOTICE TO NVIDIA OWNERS! System will reboot your system!\n"
+
 sleep 2
-printf "\n${NOTE} You can start Hyprland by typing Hyprland (IF SDDM is not installed) (note the capital H!).\n"
-printf "\n"
-printf "\n"
+
+printf "\n${NOTE} You can start Hyprland by typing Hyprland (IF SDDM is not installed) (note the capital H!).\n\n\n"
+
 read -n1 -rep "${CAT} Would you like to start Hyprland now? (y,n)" HYP
 
 if [[ $HYP =~ ^[Yy]$ ]]; then
