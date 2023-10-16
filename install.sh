@@ -8,6 +8,9 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
+# Check if SDDM is installed:
+SDDM=$(apt list --installed | grep sddm | wc -l)
+
 clear
 
 # Welcome message
@@ -28,7 +31,7 @@ fi
 read -p "$(tput setaf 6)Have you edited your /etc/apt/sources.list? (y/n): $(tput sgr0)" proceed2
 
 if [ "$proceed2" != "y" ]; then
-    echo "Installation aborted Kindly edit your sources.list first. Refer to readme."
+    echo "Installation aborted. Kindly edit your sources.list first. Refer to readme."
     exit 1
 fi
 
@@ -72,7 +75,7 @@ script_directory=install-scripts
 # Function to ask a yes/no question and set the response in a variable
 ask_yes_no() {
     while true; do
-        read -p "$(colorize_prompt "$CAT"  "$1 (y/n): ")" choice
+        read -p "$(colorize_prompt "$CAT"  " $1 (y/n): ")" choice
         case "$choice" in
             [Yy]* ) eval "$2='Y'"; return 0;;
             [Nn]* ) eval "$2='N'"; return 1;;
@@ -113,9 +116,18 @@ execute_script() {
     fi
 }
 
+
+# Experimental patch - need to check if it works in MATROX card with Nvidia chips:
+CHECK_NVIDIA=$(lspci | grep -i vga | grep -i nvidia  | wc -l)
+
+if [ $CHECK_NVIDIA != 0 ]; then
+    echo -e "\n${NOTE} Detected one or more NVIDIA/MATROX compatible card."
+    nvidia=Y
+else
+    nvidia=N
+fi
+
 # Collect user responses to all questions
-printf "\n"
-ask_yes_no "Do you have nvidia gpu?" nvidia
 printf "\n"
 ask_yes_no "Do you want to install GTK themes?" gtk_themes
 printf "\n"
@@ -142,7 +154,25 @@ printf "\n"
 # Ensuring all in the scripts folder are made executable
 chmod +x install-scripts/*
 
-sudo apt update
+sudo apt update # will not work if user isnt in /etc/sudoers file by default.
+
+# Run apt and update/install drivers for ubuntu users, so, ya dont need to edit nvidia.sh:
+if [ "$?" == 0 ]; then
+    echo "${ERROR} 'apt update' had a problem. Check if user $USER is configured in your /etc/sudoers file."
+else
+    UBUNTU=$(cat os-release | grep debian -i | wc -l)
+
+    # Install nvidia drivers:
+    if [ "$nvidia" == "Y" ]; then
+        if [ $UBUNTU != 0 ]; then
+            # Ubuntu users:
+            ubuntu-drivers autoinstall
+        else
+            # Debian:
+            apt install linux-headers-amd64 nvidia-driver firmware-misc-nonfree
+        fi
+    fi
+fi
 
 # Install hyprland packages
 execute_script "00-dependencies.sh"
@@ -228,3 +258,4 @@ if [[ $HYP =~ ^[Yy]$ ]]; then
         fi
     fi    
 fi
+
